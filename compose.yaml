@@ -1,0 +1,70 @@
+name: guide
+
+x-database-environment: &database-environment
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_NAME: ${DB_NAME:-webhook_data}
+  DB_USER: ${DB_USER:-webhook_user}
+  DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-webhook_data}
+      POSTGRES_USER: ${DB_USER:-webhook_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    ports:
+      - '127.0.0.1:${DB_PUBLISHED_PORT:-5433}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      GITLAB_API_URL: ${GITLAB_API_URL:?Set GITLAB_API_URL in .env}
+      GITLAB_PRIVATE_TOKEN: ${GITLAB_PRIVATE_TOKEN:?Set GITLAB_PRIVATE_TOKEN in .env}
+      GITLAB_WEBHOOK_SECRET: ${GITLAB_WEBHOOK_SECRET:?Set GITLAB_WEBHOOK_SECRET in .env}
+      GITLAB_REQUEST_TIMEOUT: ${GITLAB_REQUEST_TIMEOUT:-30}
+    ports:
+      - '${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PUBLISHED_PORT:-5001}:5000'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:5000/", timeout=5)']
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      HOST: 0.0.0.0
+      PORT: 8050
+    ports:
+      - '127.0.0.1:${FRONTEND_PUBLISHED_PORT:-8050}:8050'
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8050/", timeout=5)']
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  postgres_data:

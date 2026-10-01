@@ -1,0 +1,8 @@
+# Python 3.11+; direct application dependencies.
+dash==3.0.4
+dash-bootstrap-components==2.0.2
+dash_cytoscape==1.0.2
+pandas==2.2.3
+plotly==6.0.1
+psycopg2-binary==2.9.10
+SQLAlchemy==2.0.40
