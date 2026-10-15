@@ -31,7 +31,7 @@ Set these values in `.env` for either setup:
 
 | Variable | Value                                                                     |
 | --- |---------------------------------------------------------------------------|
-| `DB_PASSWORD` | Oassword for GUIDE's database                                         |
+| `DB_PASSWORD` | Password for GUIDE's database                                         |
 | `GITLAB_WEBHOOK_SECRET` | A separate random secret; use the same value in GitLab's webhook settings |
 
 Keep the other values as defaults for now. 
